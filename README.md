@@ -1,2 +1,18 @@
-# Similarimagematching
-Similar image matching
+## 功能
+在本地图像数据集中匹配与目标图像相似度高于阈值的图像，图像相似度算法使用“感知哈希”，基于Flask实现web服务，本地图像数据集支持热更新
+
+## 环境
+不需要特殊环境，如有需要可参考 requirement.txt
+
+## 运行
+python server.py
+
+## 接口API
+http://wiki.ccwb.cn/web/#/76?page_id=2353
+
+## 其他
+* 首次运行需创建文件夹：orgimgs（用于存放本地图像文件），uporgimgs（用于暂存图像数据热更新时需要的文件）
+* 当使用“热更新”功能后，需调用示例post.py请求的接口后热更新才会完全生效
+* post.py # 图像相似度匹配调用示例
+* post2.py # 热更新-添加图像调用示例
+* post3.py # 热更新-删除图像调用示例
