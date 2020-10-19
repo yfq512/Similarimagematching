@@ -16,3 +16,4 @@ http://wiki.ccwb.cn/web/#/76?page_id=2353
 * post.py # 图像相似度匹配调用示例
 * post2.py # 热更新-添加图像调用示例
 * post3.py # 热更新-删除图像调用示例
+* fun_base.py # 图像相似度计算时用到的函数
