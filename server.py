@@ -48,10 +48,14 @@ def upimgs(upimgroot, orgimgroot):
 def get_limit_imgpath(dstimgpath, _hash_strs, _imgpaths):
     limit =85
     dstimg = cv2.imread(dstimgpath)
+    dstimg_2 = cv2.flip(dstimg, 1) # check overturn image on the same time
     dst_hash_str = fun_Hash(dstimg)
+    dst_hash_str_2 = fun_Hash(dstimg_2)
     out_imgpaths = []
     for n in range(len(_hash_strs)):
         temp_value = com2hashstr(dst_hash_str, _hash_strs[n])
+        temp_value_2 = com2hashstr(dst_hash_str_2, _hash_strs[n])
+        temp_value = max(temp_value, temp_value_2) # use max score
         if temp_value > limit:
             out_imgpaths.append(_imgpaths[n])
     return out_imgpaths
