@@ -46,7 +46,7 @@ def upimgs(upimgroot, orgimgroot):
     return _hash_strs, _imgpaths
 
 def get_limit_imgpath(dstimgpath, _hash_strs, _imgpaths):
-    limit = 98
+    limit =85
     dstimg = cv2.imread(dstimgpath)
     dst_hash_str = fun_Hash(dstimg)
     out_imgpaths = []
@@ -155,5 +155,5 @@ def _delimgs():
 
 if __name__ == "__main__":
     host = '0.0.0.0'
-    port = '8082'
+    port = '8088'
     app.run(debug=True, host=host, port=port)
