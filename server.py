@@ -1,4 +1,4 @@
-import cv2, os, time, random, base64, shutil
+import cv2, os, time, random, base64, shutil, fcntl
 from fun_base import fun_Hash, com2hashstr
 from flask import Flask,render_template,request
 
@@ -150,8 +150,10 @@ def _delimgs():
         if not delname in orgimg_list:
             return {'sign':-1, 'text':orgimg_list} # failed,return orgimg_list
         with open(delimgsign_path,'a') as f:
+            fcntl.flock(f,fcntl.LOCK_EX)
             f.write(delname)
             f.write('\n')
+            fcntl.flock(f,fcntl.LOCK_UN)
             f.close()
         os.remove(os.path.join(orgimgroot, delname))
         return {'sign':0, 'text':None} # del scuess
