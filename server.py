@@ -56,6 +56,7 @@ def get_limit_imgpath(dstimgpath, _hash_strs, _imgpaths):
         temp_value = com2hashstr(dst_hash_str, _hash_strs[n])
         temp_value_2 = com2hashstr(dst_hash_str_2, _hash_strs[n])
         temp_value = max(temp_value, temp_value_2) # use max score
+        print('5444646464646464',temp_value)
         if temp_value > limit:
             out_imgpaths.append(_imgpaths[n])
     return out_imgpaths
@@ -160,4 +161,4 @@ def _delimgs():
 if __name__ == "__main__":
     host = '0.0.0.0'
     port = '8088'
-    app.run(debug=True, host=host, port=port)
+    app.run(debug=True, host=host, port=port, threaded=True)
