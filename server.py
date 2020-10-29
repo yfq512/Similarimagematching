@@ -122,6 +122,7 @@ def get_similar_img():
 @app.route("/updataimgs",methods = ['GET', 'POST'])
 def updataimgs():
     if request.method == "POST":
+        sign_Mandatory_add = request.form.get('sign_add')
         imgbase64 = request.form.get('imgbase64')
         imgbase64 = base64.b64decode(imgbase64)
         randname = getRandomSet(20) + '.jpg'
@@ -129,6 +130,12 @@ def updataimgs():
         file = open(imgpath,'wb')
         file.write(imgbase64)
         file.close()
+        if sign_Mandatory_add == 1:
+            if not os.path.exists(upimgsign_path):
+                with open(upimgsign_path,'w') as f:
+                    f.write('sign')
+                    f.close()
+            return {'sign':-1, 'savename':uplimit_imgpaths}
         uplimit_imgpaths = get_limit_imgpath(imgpath, hash_strs, imgpaths)
         if not len(uplimit_imgpaths) == 0:
             os.remove(imgpath)
