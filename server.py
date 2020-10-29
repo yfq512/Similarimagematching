@@ -117,7 +117,7 @@ def get_similar_img():
             return {'sign':0, 'text':None} # noimg similar this img by limit value
         return {'sign':1, 'text':uplimit_imgpaths} # orgimgpaths similar up limit value
     else:
-        return "<h1>Get similar img, please use pust !</h1>"
+        return "<h1>Get similar img, please use post !</h1>"
 
 @app.route("/updataimgs",methods = ['GET', 'POST'])
 def updataimgs():
@@ -140,7 +140,7 @@ def updataimgs():
                 f.close()
         return {'sign':1, 'savename':randname} # add scuessful, return name in orgdata
     else:
-        return "<h1>Updata img, please use pust !</h1>"
+        return "<h1>Updata img, please use post !</h1>"
 
 @app.route("/delimgs",methods = ['GET', 'POST'])
 def _delimgs():
@@ -158,7 +158,38 @@ def _delimgs():
         os.remove(os.path.join(orgimgroot, delname))
         return {'sign':0, 'text':None} # del scuess
     else:
-        return "<h1>Delete img, please use pust !</h1>"
+        return "<h1>Delete img, please use post !</h1>"
+
+@app.route("/com2imgs",methods = ['GET', 'POST'])
+def com2imgs():
+    if request.method == "POST":
+        imgbase64_1 = request.form.get('imgbase64_1')
+        imgbase64_1 = base64.b64decode(imgbase64_1)
+        imgbase64_2 = request.form.get('imgbase64_2')
+        imgbase64_2 = base64.b64decode(imgbase64_2)
+        randname1 = getRandomSet(20) + '.jpg'
+        randname2 = getRandomSet(20) + '.jpg'
+        file = open(randname1,'wb')
+        file.write(imgbase64_1)
+        file.close()
+        file = open(randname2,'wb')
+        file.write(imgbase64_2)
+        file.close()
+        try:
+            img1 = cv2.imread(randname1)
+            img2 = cv2.imread(randname2)
+            hash1 = fun_Hash(img1)
+            hash2 = fun_Hash(img2)
+            score = com2hashstr(hash1, hash2)
+            os.remove(randname1)
+            os.remove(randname2)
+            return {'sign':1, 'score':score}
+        except:
+            os.remove(randname1)
+            os.remove(randname2)
+            return {'sign':-1, 'score':None}
+    else:
+        return "<h1>compare img, please use post !</h1>"
 
 if __name__ == "__main__":
     host = '0.0.0.0'

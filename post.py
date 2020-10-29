@@ -5,10 +5,10 @@ import base64
 
 t1 = time.time()
 s = requests
-with open('2.jpg', 'rb') as f:
+with open('draw2-bad.jpg', 'rb') as f:
     imgbase64 = base64.b64encode(f.read())
 data={'imgbase64':imgbase64}
-r = s.post('http://0.0.0.0:8082/imgsimilar', data)
+r = s.post('http://192.168.132.151:8088/imgsimilar', data)
 
 print(r.text)
 print('time cost:', time.time() - t1)
