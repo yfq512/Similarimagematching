@@ -130,12 +130,12 @@ def updataimgs():
         file = open(imgpath,'wb')
         file.write(imgbase64)
         file.close()
-        if sign_Mandatory_add == 1:
+        if sign_Mandatory_add == '1':
             if not os.path.exists(upimgsign_path):
                 with open(upimgsign_path,'w') as f:
                     f.write('sign')
                     f.close()
-            return {'sign':-1, 'savename':uplimit_imgpaths}
+            return {'sign':1, 'savename':randname}
         uplimit_imgpaths = get_limit_imgpath(imgpath, hash_strs, imgpaths)
         if not len(uplimit_imgpaths) == 0:
             os.remove(imgpath)
