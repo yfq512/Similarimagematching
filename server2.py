@@ -14,18 +14,25 @@ def load_img(orgimgroot):
     hash_str_list = []
     imgpath_list = []
     orgimg_list = os.listdir(orgimgroot)
+    cnt = 0
+    cnt_error = 0
     for n in orgimg_list:
         imgpath = os.path.join(orgimgroot, n)
+        print('>>>',cnt, imgpath)
+        cnt = cnt + 1
         try:
             img = cv2.imread(imgpath)
+            img.shape
         except:
             print('read img error: ', imgpath)
-            img = None
+            cnt_error = cnt_error + 1
+            continue
         img_hash = fun_Hash(img)
         hash_str_list.append(img_hash)
         # 拼接es数据库图像url，接下来仍然需要调整的 ！！！！！！！！！！
-        imgpath = 'allimage":"https://filefusion.ccwb.cn/files/2020/12/images/' + n
+        imgpath = ["allimage","https://filefusion.ccwb.cn/files/2020/12/images/" + n]
         imgpath_list.append(imgpath)
+    print('successful and error: ',cnt, cnt_error)
     return hash_str_list, imgpath_list
 
 def upimgs(upimgroot, orgimgroot):
@@ -48,8 +55,8 @@ def upimgs(upimgroot, orgimgroot):
         print('adding: ', copy_path)
     return _hash_strs, _imgpaths
 
-def get_limit_imgpath(dstimgpath, _hash_strs, _imgpaths):
-    limit =85
+def get_limit_imgpath(dstimgpath, _hash_strs, _imgpaths, limit):
+    limit = int(limit)
     dstimg = cv2.imread(dstimgpath)
     dstimg_2 = cv2.flip(dstimg, 1) # check overturn image on the same time
     dst_hash_str = fun_Hash(dstimg)
@@ -60,7 +67,6 @@ def get_limit_imgpath(dstimgpath, _hash_strs, _imgpaths):
         temp_value = com2hashstr(dst_hash_str, _hash_strs[n])
         temp_value_2 = com2hashstr(dst_hash_str_2, _hash_strs[n])
         temp_value = max(temp_value, temp_value_2) # use max score
-        print('5444646464646464',temp_value)
         if temp_value > limit:
             out_imgpaths.append(_imgpaths[n])
             similar_scores.append(temp_value)
@@ -69,24 +75,31 @@ def get_limit_imgpath(dstimgpath, _hash_strs, _imgpaths):
     similar_infos = []
     for id in range(len(out_imgpaths)):
         id_img_str = out_imgpaths[id]
+        str1 = id_img_str[0]
+        str2 = id_img_str[1]
         # 根据图像URL（视为唯一id），模糊匹配title，在解析title信息
+        print('==========',str2)
         body = {
             "query":{
                 "match":{
-                    id_img_str
+                    str1:str2
                 }
             }
         }
         info_org = es_db.search(index='fwnews',body=body)
         info_dst = info_org.get('hits').get('hits')[0].get('_source')
-        img_url = id_img_str
+        img_url = str2
+        id_title = info_dst.get('id')
+        all_imgs = info_dst.get('allimage')
         title_url = info_dst.get('source_url')
         web_source = info_dst.get('source')
         title = info_dst.get('title')
         img_similar_score = similar_scores[id]
-        similar_infos.append({'img_url':img_url, 'title':title, 'title_url':title_url, 'web_source':web_source, 'img_similar_score':img_similar_score})
-        
-    return similar_infos, max(similar_scores)
+        similar_infos.append({'img_url':img_url, 'title':title, 'title_url':title_url, 'web_source':web_source, 'img_similar_score':img_similar_score, 'id_title':id_title, 'all_imgs':all_imgs})
+    if len(similar_scores) == 0:
+        return similar_infos, 0
+    else:
+        return similar_infos, max(similar_scores)
 
 def get_list_index(org_list, new_list):
     nums_list = []
@@ -143,22 +156,24 @@ def get_similar_img():
         temp_img_base64 = request.form.get('imgbase64')
         temp_img_base64 = re.sub(r'data:image/[a-zA-Z]*;base64,', "",temp_img_base64) # 适配js库base64
         temp_img_base64 = temp_img_base64.replace("data:image/jpeg;base64,", "") # 适配多种图像类型
+        limit = request.form.get('limit')
         temp_img_base64 = base64.b64decode(temp_img_base64)
         rand_img_name = getRandomSet(20) + '.jpg'
-        temp_img_path = os.path.join(orgimgroot, rand_img_name)
+        temp_img_path = os.path.join('temp', rand_img_name)
         file = open(temp_img_path,'wb')
         file.write(temp_img_base64)
         file.close()
-        try:
-            similar_infos, similar_value_max = get_limit_imgpath(temp_img_path, hash_strs, imgpaths)
-            if len(similar_infos) > 0: # 存在相似图像
-                sign = 1
-                return json.dumps({'sign':sign, 'similar_value_max':similar_value_max, 'similar_infos':similar_infos})
-            else: # 不存在相似图像
-                sign = 0
-                return json.dumps({'sign':sign, 'similar_value_max':similar_value_max, 'similar_infos':similar_infos})
-        except:
+        #try:
+        similar_infos, similar_value_max = get_limit_imgpath(temp_img_path, hash_strs, imgpaths, limit)
+        os.remove(temp_img_path)
+        if len(similar_infos) > 0: # 存在相似图像
+            sign = 1
             return json.dumps({'sign':sign, 'similar_value_max':similar_value_max, 'similar_infos':similar_infos})
+        else: # 不存在相似图像
+            sign = 0
+            return json.dumps({'sign':sign, 'similar_value_max':similar_value_max, 'similar_infos':similar_infos})
+        #except:
+        #    return json.dumps({'sign':sign, 'similar_value_max':similar_value_max, 'similar_infos':similar_infos})
     else:
         return "<h1>match img, please use post !</h1>"
 
