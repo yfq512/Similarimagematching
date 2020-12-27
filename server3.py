@@ -79,7 +79,7 @@ def get_limit_imgpath(dstimgpath, _hash_strs, _imgpaths, limit):
         # str1 = id_img_str[0]
         # str2 = id_img_str[1]
         # 根据图像URL（视为唯一id），模糊匹配title，在解析title信息
-        print('==========',str2)
+        print('==========',id_img_str)
         body = {
             "query":{
                 "term":{
@@ -89,14 +89,13 @@ def get_limit_imgpath(dstimgpath, _hash_strs, _imgpaths, limit):
         }
         info_org = es_db.search(index='fwnews',body=body)
         info_dst = info_org.get('hits').get('hits')[0].get('_source')
-        img_url = str2
+        img_url = info_dst.get('pic_path')
         id_title = info_dst.get('id')
-        all_imgs = info_dst.get('pic_path')
         title_url = info_dst.get('source_url')
         web_source = info_dst.get('source')
         title = info_dst.get('title')
         img_similar_score = similar_scores[id]
-        similar_infos.append({'img_url':img_url, 'title':title, 'title_url':title_url, 'web_source':web_source, 'img_similar_score':img_similar_score, 'id_title':id_title, 'all_imgs':all_imgs})
+        similar_infos.append({'img_url':img_url, 'title':title, 'title_url':title_url, 'web_source':web_source, 'img_similar_score':img_similar_score, 'id_title':id_title})
     if len(similar_scores) == 0:
         return similar_infos, 0
     else:
