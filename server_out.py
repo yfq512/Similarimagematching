@@ -4,6 +4,7 @@ from flask import Flask,render_template,request
 from elasticsearch import Elasticsearch
 from init_load_img2npy import get_img_name
 from init_load_img2npy import fun_Hash
+import numpy as np
 
 def getRandomSet(bits):
     num_set = [chr(i) for i in range(48,58)]
@@ -12,7 +13,6 @@ def getRandomSet(bits):
     value_set = "".join(random.sample(total_set, bits))
     return value_set
 def get_limit_imgpath(dstimgpath, limit):
-#def get_limit_imgpath(dstimgpath, _hash_strs, _imgpaths, limit):
     limit = int(limit)
     dstimg = cv2.imread(dstimgpath)
     dstimg_gray = cv2.cvtColor(dstimg, cv2.COLOR_BGR2GRAY)
@@ -25,7 +25,7 @@ def get_limit_imgpath(dstimgpath, limit):
     print(data_npy_path)
     exit()
     # 获取特征列表和图像名列表
-    if os.path.exists(data_npt_path):
+    if os.path.exists(data_npy_path):
         while True:
             try:
                 data_npy = np.load(data_npy_path, allow_pickle=True).item()
@@ -53,22 +53,31 @@ def get_limit_imgpath(dstimgpath, limit):
             
     # 查询es数据库，返回similar_infos
     similar_infos = []
-    for id in range(len(out_imgpaths)):
-        id_img_str = out_imgpaths[id]
-        str1 = id_img_str[0]
-        str2 = id_img_str[1]
-        # 根据图像URL（视为唯一id），模糊匹配title，在解析title信息
-        print('==========',str2)
-        body = {
-            "query":{
-                "match":{
-                    str1:str2
+    for img_name_index in range(len(out_imgpaths)):
+        img_name = out_imgpaths[img_name_index]
+        img_name_split = img_name.split('@#$!')
+        if len(img_name_split) > 1: # fw数据，基于id查询
+            _id = img_name_split[0]
+            
+            body = {
+                "query":{
+                    "match":{
+                        "id.keyword":_id
+                    }
+                }
+            }         
+        else: # 自己的数据，基于allimage字段精准查询
+            body = {
+            'query': {
+                'match_phrase': {
+                    'allimage':img_name   # 使用正则表达式查询
+                    }
                 }
             }
-        }
+
         info_org = es_db.search(index='fwnews',body=body)
         info_dst = info_org.get('hits').get('hits')[0].get('_source')
-        img_url = str2
+        img_url = None
         id_title = info_dst.get('id')
         all_imgs = info_dst.get('allimage')
         title_url = info_dst.get('source_url')
