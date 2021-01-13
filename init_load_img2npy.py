@@ -89,6 +89,39 @@ def get_img_name(img, dstpath): # 单筒单灰度图像，路径规则为:dstpat
     out_path = os.path.join(dstpath, name_b, name_g, name_r, name_similar, name_mean)
     return out_path
 
+def auto_updata_imgnpy(imgpath):
+    img = cv2.imread(imgpath)
+    try:
+        img.shape
+    except:
+        str1 = 'load img failed' + ':' + imgpath
+        with open('loadimgerror.log','a') as f:
+            f.write(str1)
+            f.write('\n')
+            f.close()
+        return 0
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    hash_str = fun_Hash(gray)
+    out_path = get_img_name(img, './data_npy')
+    if not os.path.exists(out_path):
+        os.makedirs(out_path)
+    data_npy_path = os.path.join(out_path, 'data_copy.npy')
+    imgname = imgpath.split('/')[-1]
+    if not os.path.exists(data_npy_path): # 若不存在则新建
+        data = {'imghash':[hash_str],'imgpath':[imgname]}
+        np.save(data_npy_path, data)
+    else:
+        f1 = open(data_npy_path)
+        fcntl.flock(f1,fcntl.LOCK_EX) # 获取锁
+        data = np.load(data_npy_path, allow_pickle=True).item()
+        imghash_list = data.get('imghash')
+        imgpath_list = data.get('imgpath')
+        imghash_list.append(hash_str)
+        imgpath_list.append(imgname)
+        np.save(data_npy_path, data)
+        fcntl.flock(f1,fcntl.LOCK_UN) # 解除锁
+    return 1
+
 if __name__ == "__main__":
     root = 'imgs_es'
     dstroot = './data_npy'
