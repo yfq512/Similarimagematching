@@ -1,3 +1,4 @@
+# coding=utf-8
 import cv2, os, time, random, base64, shutil, fcntl, re, json
 from fun_base import com2hashstr
 from flask import Flask,render_template,request
@@ -5,6 +6,7 @@ from elasticsearch import Elasticsearch
 from init_load_img2npy import get_img_name
 from init_load_img2npy import fun_Hash
 import numpy as np
+from init_load_img2npy import auto_updata_imgnpy as load_imgnpy
 
 def getRandomSet(bits):
     num_set = [chr(i) for i in range(48,58)]
@@ -15,15 +17,18 @@ def getRandomSet(bits):
 def get_limit_imgpath(dstimgpath, limit):
     limit = int(limit)
     dstimg = cv2.imread(dstimgpath)
+    try:
+        dstimg.shape
+    except:
+        print('img read error')
+        return -1, [],[]
     dstimg_gray = cv2.cvtColor(dstimg, cv2.COLOR_BGR2GRAY)
     dstimg_2 = cv2.flip(dstimg, 1) # check overturn image on the same time
     dstimg_gray2 = cv2.cvtColor(dstimg_2, cv2.COLOR_BGR2GRAY)
 
     # 获取目标图像所在特征组路径
     out_path = get_img_name(dstimg, './data_npy')
-    data_npy_path = os.path.join(out_path, 'data.npy')
-    print(data_npy_path)
-    exit()
+    data_npy_path = os.path.join(out_path, 'data_copy.npy')
     # 获取特征列表和图像名列表
     if os.path.exists(data_npy_path):
         while True:
@@ -50,45 +55,71 @@ def get_limit_imgpath(dstimgpath, limit):
         if temp_value > limit:
             out_imgpaths.append(_imgpaths[n])
             similar_scores.append(temp_value)
-            
+    #if add online img
+    _cnt1 = 0
+    for xxx in out_imgpaths:
+        _split = xxx.split('@#$!!')
+        if len(_split) > 1:
+            continue
+        else:
+            _cnt1 = _cnt1 + 1
+    if _cnt1 == len(out_imgpaths):
+        load_imgnpy(dstimgpath)
+        cv2.imwrite(os.path.join('online',dstimgpath),dstimg)
+
     # 查询es数据库，返回similar_infos
     similar_infos = []
     for img_name_index in range(len(out_imgpaths)):
         img_name = out_imgpaths[img_name_index]
-        img_name_split = img_name.split('@#$!')
-        if len(img_name_split) > 1: # fw数据，基于id查询
-            _id = img_name_split[0]
-            
-            body = {
-                "query":{
-                    "match":{
-                        "id.keyword":_id
+        print('11111111111', img_name)
+        img_name_split_online = img_name.split('@#$!!')
+        if len(img_name_split_online) > 1:
+            img_url = None
+            title = out_imgpaths[img_name_index]
+            title_url = None
+            web_source = None
+            img_similar_score = similar_scores[img_name_index]
+            id_title = None
+            all_imgs = None
+        else:
+            img_name_split = img_name.split('@#$!')
+            if len(img_name_split) > 1: # fw数据，基于id查询
+                _id = img_name_split[0]
+                
+                body = {
+                    "query":{
+                        "match":{
+                            "id.keyword":_id
+                        }
+                    }
+                }         
+            else: # 自己的数据，基于allimage字段精准查询
+                body = {
+                'query': {
+                    'match_phrase': {
+                        'allimage':img_name   # 使用正则表达式查询
+                        }
                     }
                 }
-            }         
-        else: # 自己的数据，基于allimage字段精准查询
-            body = {
-            'query': {
-                'match_phrase': {
-                    'allimage':img_name   # 使用正则表达式查询
-                    }
-                }
-            }
 
-        info_org = es_db.search(index='fwnews',body=body)
-        info_dst = info_org.get('hits').get('hits')[0].get('_source')
-        img_url = None
-        id_title = info_dst.get('id')
-        all_imgs = info_dst.get('allimage')
-        title_url = info_dst.get('source_url')
-        web_source = info_dst.get('source')
-        title = info_dst.get('title')
-        img_similar_score = similar_scores[id]
+            info_org = es_db.search(index='fwnews',body=body)
+            try:
+                info_dst = info_org.get('hits').get('hits')[0].get('_source')
+            except:
+                print('ex search error')
+                return -1, [], []
+            img_url = None
+            id_title = info_dst.get('id')
+            all_imgs = info_dst.get('allimage')
+            title_url = info_dst.get('source_url')
+            web_source = info_dst.get('source')
+            title = info_dst.get('title')
+            img_similar_score = similar_scores[img_name_index]
         similar_infos.append({'img_url':img_url, 'title':title, 'title_url':title_url, 'web_source':web_source, 'img_similar_score':img_similar_score, 'id_title':id_title, 'all_imgs':all_imgs})
     if len(similar_scores) == 0:
-        return similar_infos, 0
+        return 1, similar_infos, 0
     else:
-        return similar_infos, max(similar_scores)
+        return 1, similar_infos, max(similar_scores)
 
 # 链接es数据库
 es_db = Elasticsearch(["192.168.132.152"], http_auth=('elastic', 'Ynwy778123'), port=9200)
@@ -107,15 +138,18 @@ def get_similar_img():
         temp_img_base64 = re.sub(r'data:image/[a-zA-Z]*;base64,', "",temp_img_base64) # 适配js库base64
         temp_img_base64 = temp_img_base64.replace("data:image/jpeg;base64,", "") # 适配多种图像类型
         limit = request.form.get('limit')
+        name_unique = request.form.get('unique_str')
         temp_img_base64 = base64.b64decode(temp_img_base64)
-        rand_img_name = getRandomSet(20) + '.jpg'
+        rand_img_name = getRandomSet(20)+ '@#$!!' + name_unique + '.jpg'
         temp_img_path = os.path.join('temp', rand_img_name)
         file = open(temp_img_path,'wb')
         file.write(temp_img_base64)
         file.close()
         #try:
-        similar_infos, similar_value_max = get_limit_imgpath(temp_img_path, limit)
+        sign,similar_infos, similar_value_max = get_limit_imgpath(temp_img_path, limit)
         os.remove(temp_img_path)
+        if sign == -1:
+            return json.dumps({'sign':sign, 'similar_value_max':similar_value_max, 'similar_infos':similar_infos})
         if len(similar_infos) > 0: # 存在相似图像
             sign = 1
             return json.dumps({'sign':sign, 'similar_value_max':similar_value_max, 'similar_infos':similar_infos})
