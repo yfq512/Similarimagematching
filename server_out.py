@@ -7,6 +7,7 @@ from init_load_img2npy import get_img_name
 from init_load_img2npy import fun_Hash
 import numpy as np
 from init_load_img2npy import auto_updata_imgnpy as load_imgnpy
+from urllib3.connectionpool import xrange
 
 def getRandomSet(bits):
     num_set = [chr(i) for i in range(48,58)]
@@ -48,7 +49,7 @@ def get_limit_imgpath(dstimgpath, limit):
     dst_hash_str_2 = fun_Hash(dstimg_gray2)
     out_imgpaths = []
     similar_scores = []
-    for n in range(len(_hash_strs)):
+    for n in xrange(len(_hash_strs)):
         temp_value = com2hashstr(dst_hash_str, _hash_strs[n])
         temp_value_2 = com2hashstr(dst_hash_str_2, _hash_strs[n])
         temp_value = max(temp_value, temp_value_2) # use max score
@@ -69,7 +70,7 @@ def get_limit_imgpath(dstimgpath, limit):
 
     # 查询es数据库，返回similar_infos
     similar_infos = []
-    for img_name_index in range(len(out_imgpaths)):
+    for img_name_index in xrange(len(out_imgpaths)):
         img_name = out_imgpaths[img_name_index]
         print('11111111111', img_name)
         img_name_split_online = img_name.split('@#$!!')
