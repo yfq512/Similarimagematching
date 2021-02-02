@@ -2,7 +2,7 @@ from kafka import KafkaConsumer, TopicPartition
 import time
 import json
 import os
-from init_load_img2npy import auto_updata_imgnpy as load_imgnpy
+from init_load_img2npy2 import auto_updata_imgnpy as load_imgnpy # 使用优化后的数据插入，不得重复掺入
 
 def compare_time(t1, t2): # such as '2021-01-11 14:27:00', if t2>=t1 return True, or return Flase
     t1_year = int(t1.split(' ')[0].split('-')[0])
